@@ -70,6 +70,13 @@ public class DayView: UIView, TimelinePagerViewDelegate {
             timelinePagerView.eventEditingSnappingBehavior = newValue
         }
     }
+
+    /// Optional factory used by the timeline pager to instantiate a fresh
+    /// `EventView`. Forwards to `timelinePagerView.eventViewFactory`.
+    public var eventViewFactory: (() -> EventView)? {
+        get { timelinePagerView.eventViewFactory }
+        set { timelinePagerView.eventViewFactory = newValue }
+    }
     
     private var style = CalendarStyle()
     

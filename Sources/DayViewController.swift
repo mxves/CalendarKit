@@ -35,6 +35,13 @@ open class DayViewController: UIViewController, EventDataSource, DayViewDelegate
         }
     }
 
+    /// Optional factory used by the underlying timeline pager to instantiate
+    /// a fresh `EventView`. Set this in `viewDidLoad` before `reloadData()`.
+    public var eventViewFactory: (() -> EventView)? {
+        get { dayView.eventViewFactory }
+        set { dayView.eventViewFactory = newValue }
+    }
+
     open override func loadView() {
         view = dayView
     }

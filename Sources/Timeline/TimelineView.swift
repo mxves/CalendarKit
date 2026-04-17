@@ -55,6 +55,16 @@ public final class TimelineView: UIView {
     }
     private var pool = ReusePool<EventView>()
 
+    /// Optional factory used by the reuse pool when it needs to instantiate a
+    /// fresh `EventView`. Setting this rebuilds the pool so existing cached
+    /// views are discarded — do this once at configuration time, not in a
+    /// tight loop.
+    public var eventViewFactory: (() -> EventView)? {
+        didSet {
+            pool = ReusePool<EventView>(factory: eventViewFactory)
+        }
+    }
+
     public var firstEventYPosition: Double? {
         let first = regularLayoutAttributes.sorted{$0.frame.origin.y < $1.frame.origin.y}.first
         guard let firstEvent = first else {return nil}

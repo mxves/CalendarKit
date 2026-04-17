@@ -153,9 +153,25 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
         timeline.calendar = calendar
         timeline.eventEditingSnappingBehavior = eventEditingSnappingBehavior
         timeline.date = date.dateOnly(calendar: calendar)
+        timeline.eventViewFactory = eventViewFactory
         controller.container.delegate = self
         updateTimeline(timeline)
         return controller
+    }
+
+    /// Optional factory used by every managed `TimelineView`'s reuse pool when
+    /// it needs to instantiate a fresh `EventView`. Set this once during setup
+    /// (e.g. in `DayViewController.viewDidLoad`). Setting it propagates to any
+    /// already-created timeline controllers so rendering updates on the next
+    /// reload.
+    public var eventViewFactory: (() -> EventView)? {
+        didSet {
+            pagingViewController.children.forEach { child in
+                if let controller = child as? TimelineContainerController {
+                    controller.timeline.eventViewFactory = eventViewFactory
+                }
+            }
+        }
     }
 
     private var initialContentOffset = CGPoint.zero
@@ -218,7 +234,7 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
     /// - Parameter event: the EventDescriptor based on which an EventView will be placed on the Timeline
     /// - Parameter animated: if true, CalendarKit animates event creation
     public func create(event: EventDescriptor, animated: Bool) {
-        let eventView = EventView()
+        let eventView = eventViewFactory?() ?? EventView()
         eventView.updateWithDescriptor(event: event)
         addSubview(eventView)
         // layout algo
