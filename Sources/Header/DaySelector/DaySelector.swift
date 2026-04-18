@@ -13,27 +13,42 @@ public protocol DaySelectorDelegate: AnyObject {
 
 public final class DaySelector: UIView {
     public weak var delegate: DaySelectorDelegate?
-    
+
     public var calendar = Calendar.autoupdatingCurrent {
         didSet {
             updateItemsCalendar()
         }
     }
-    
+
     private func updateItemsCalendar() {
         items.forEach { (item) in
             item.calendar = calendar
         }
     }
-    
+
     private var style = DaySelectorStyle()
-    
+
     private var daysInWeek = 7
     public var startDate: Date! {
         didSet {
             configure()
         }
     }
+
+    /// Optional supplier of per-date accessory views (e.g. event-density dots)
+    /// rendered as sibling subviews of this selector, positioned directly
+    /// below each date item. The provider is called once per date slot when
+    /// the selector (re)configures. Return `nil` to render nothing for a day.
+    ///
+    /// Hosts that add accessories are responsible for reserving vertical
+    /// room — see `DayHeaderView.pagingScrollViewHeight` / `DayView.headerHeight`.
+    public var accessoryViewProvider: ((Date) -> UIView?)? {
+        didSet { reloadAccessoryViews() }
+    }
+
+    /// One slot per item; parallel to `items`. Nil entries mean "no
+    /// accessory for this date slot."
+    private var accessoryViews: [UIView?] = []
     
     public var selectedIndex = -1 {
         didSet {
@@ -107,43 +122,75 @@ public final class DaySelector: UIView {
         for (increment, label) in items.enumerated() {
             label.date = calendar.date(byAdding: .day, value: increment, to: startDate)!
         }
+        reloadAccessoryViews()
     }
-    
+
     public func updateStyle(_ newStyle: DaySelectorStyle) {
         style = newStyle
         items.forEach{$0.updateStyle(style)}
     }
-    
+
     public func prepareForReuse() {
         items.forEach {$0.selected = false}
+    }
+
+    /// Rebuild the per-day accessory subviews from `accessoryViewProvider`.
+    /// Called on provider-set, on each `configure()`, and whenever
+    /// `initializeViews` recreates items. Host views can call it directly
+    /// (via `DayHeaderView.reloadAccessoryViews()`) when their underlying
+    /// data changes.
+    public func reloadAccessoryViews() {
+        accessoryViews.forEach { $0?.removeFromSuperview() }
+        accessoryViews.removeAll()
+        for (i, _) in items.enumerated() {
+            let date = calendar.date(byAdding: .day, value: i, to: startDate)!
+            let view = accessoryViewProvider?(date)
+            if let view {
+                view.isUserInteractionEnabled = false
+                addSubview(view)
+            }
+            accessoryViews.append(view)
+        }
+        setNeedsLayout()
     }
     
     override public func layoutSubviews() {
         super.layoutSubviews()
-        
+
         let itemCount = Double(items.count)
         let size = items.first?.intrinsicContentSize ?? .zero
-        
+
         let parentWidth = bounds.size.width
-        
+
         var per = parentWidth - size.width * itemCount
         per /= itemCount
         let minX = per / 2
-        
+
         for (i, item) in items.enumerated() {
-            
+
             var x = minX + (size.width + per) * Double(i)
-            
+
             let rightToLeft = UIView.userInterfaceLayoutDirection(for: semanticContentAttribute) == .rightToLeft
             if rightToLeft {
                 x = parentWidth - x - size.width
             }
-            
+
             let origin = CGPoint(x: x,
                                  y: 0)
             let frame = CGRect(origin: origin,
                                size: size)
             item.frame = frame
+
+            // Accessory view: horizontally centered under the item, sized to
+            // its intrinsic content size. 2pt gap matches the visual rhythm
+            // of the selected-date circle + density dots used by clients like
+            // Moves.
+            if i < accessoryViews.count, let accessory = accessoryViews[i] {
+                let accSize = accessory.intrinsicContentSize
+                let ax = frame.midX - accSize.width / 2
+                let ay = frame.maxY + 2
+                accessory.frame = CGRect(origin: CGPoint(x: ax, y: ay), size: accSize)
+            }
         }
     }
     

@@ -30,16 +30,23 @@ public class DayView: UIView, TimelinePagerViewDelegate {
             headerHeight = isHeaderViewVisible ? DayView.headerVisibleHeight : 0
             dayHeaderView.isHidden = !isHeaderViewVisible
             setNeedsLayout()
-            configureLayout()
         }
     }
-    
+
     public var timelineScrollOffset: CGPoint {
         timelinePagerView.timelineScrollOffset
     }
-    
+
     private static let headerVisibleHeight: Double = 88
-    public var headerHeight: Double = headerVisibleHeight
+    /// Vertical space reserved for `dayHeaderView`. Hosts that install a
+    /// `dayHeaderView.accessoryViewProvider` should bump this to give the
+    /// decorations (dots, counts, bars) room below the date number.
+    /// The stored height constraint is updated in-place; no full relayout
+    /// reinstall needed.
+    public var headerHeight: Double = headerVisibleHeight {
+        didSet { headerHeightConstraint?.constant = headerHeight }
+    }
+    private var headerHeightConstraint: NSLayoutConstraint?
     
     public var autoScrollToFirstEvent: Bool {
         get {
@@ -125,6 +132,7 @@ public class DayView: UIView, TimelinePagerViewDelegate {
         let heightConstraint = dayHeaderView.heightAnchor.constraint(equalToConstant: headerHeight)
         heightConstraint.priority = .defaultLow
         heightConstraint.isActive = true
+        headerHeightConstraint = heightConstraint
 
         timelinePagerView.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor).isActive = true
         timelinePagerView.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor).isActive = true
@@ -152,6 +160,11 @@ public class DayView: UIView, TimelinePagerViewDelegate {
     
     public func reloadData() {
         timelinePagerView.reloadData()
+        // Accessory views are computed per-date from a host-supplied closure
+        // that typically captures mutable state (e.g. an event-count dict).
+        // Reloading the header alongside the timeline keeps decorations in
+        // sync with visible events without the host juggling a separate call.
+        dayHeaderView.reloadAccessoryViews()
     }
     
     public func move(to date: Date) {

@@ -47,6 +47,20 @@ public final class DaySelectorController: UIViewController {
             daySelector.selectedDate = newValue
         }
     }
+
+    /// Pass-through to `DaySelector.accessoryViewProvider`. Set from
+    /// `DayHeaderView` so each week page wired up here gets the same provider.
+    public var accessoryViewProvider: ((Date) -> UIView?)? {
+        get { daySelector.accessoryViewProvider }
+        set { daySelector.accessoryViewProvider = newValue }
+    }
+
+    /// Force the selector to re-ask the provider for accessory views — use
+    /// when the underlying data (event counts, etc.) has changed but the
+    /// date range has not.
+    public func reloadAccessoryViews() {
+        daySelector.reloadAccessoryViews()
+    }
     
     override public func loadView() {
         view = daySelector

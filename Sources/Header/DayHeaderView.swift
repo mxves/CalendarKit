@@ -17,10 +17,28 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
         }
     }
 
+    /// Per-date decoration supplier forwarded to every `DaySelectorController`
+    /// (both the currently-visible page and any pages materialized by paging
+    /// before/after). Pair with a bumped `pagingScrollViewHeight` /
+    /// `DayView.headerHeight` to reserve vertical room.
+    public var accessoryViewProvider: ((Date) -> UIView?)? {
+        didSet {
+            (pagingViewController.viewControllers as? [DaySelectorController])?.forEach {
+                $0.accessoryViewProvider = accessoryViewProvider
+            }
+        }
+    }
+
     private var currentWeekdayIndex = -1
 
     private var daySymbolsViewHeight: Double = 20
-    private var pagingScrollViewHeight: Double = 40
+    /// Height reserved for the paging DaySelector row. Public + mutable so
+    /// hosts that install an `accessoryViewProvider` can bump this to make
+    /// room for the accessory view. See also `DayView.headerHeight` — the
+    /// parent needs to grow with this for the header not to clip.
+    public var pagingScrollViewHeight: Double = 40 {
+        didSet { setNeedsLayout() }
+    }
     private var swipeLabelViewHeight: Double = 20
 
     private let daySymbolsView: DaySymbolsView
@@ -77,7 +95,19 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
         daySelectorController.updateStyle(style.daySelector)
         daySelectorController.startDate = startDate
         daySelectorController.delegate = self
+        // Propagate the accessory provider so paged-in weeks also render
+        // their decorations on first appearance.
+        daySelectorController.accessoryViewProvider = accessoryViewProvider
         return daySelectorController
+    }
+
+    /// Ask every resident `DaySelectorController` to re-query the accessory
+    /// provider. Call from the host after event counts (or whatever the
+    /// provider's closure captures) have changed. Wired through `DayView.reloadData()`.
+    public func reloadAccessoryViews() {
+        (pagingViewController.viewControllers as? [DaySelectorController])?.forEach {
+            $0.reloadAccessoryViews()
+        }
     }
 
     private func beginningOfWeek(_ date: Date) -> Date {

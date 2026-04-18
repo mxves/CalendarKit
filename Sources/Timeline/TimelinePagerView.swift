@@ -38,6 +38,24 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
 
     public var autoScrollToFirstEvent = false
 
+    /// Fires whenever a `TimelineContainerController` becomes the active
+    /// (visible) page — on initial `configure()`, on the completion of a
+    /// programmatic `move(from:to:)`, and after a finished user swipe.
+    /// Hosts typically use this to attach per-page decorations like a
+    /// `UIRefreshControl` on `container`, since CalendarKit creates a fresh
+    /// controller for every page.
+    ///
+    /// Setting this property after `configure()` has already installed the
+    /// initial page immediately fires once with the current page, so late
+    /// subscribers don't miss the first event.
+    public var onTimelineDidBecomeActive: ((TimelineContainerController) -> Void)? {
+        didSet {
+            if let onTimelineDidBecomeActive, let currentTimeline {
+                onTimelineDidBecomeActive(currentTimeline)
+            }
+        }
+    }
+
     private var pagingViewController = UIPageViewController(transitionStyle: .scroll,
                                                             navigationOrientation: .horizontal,
                                                             options: nil)
@@ -101,6 +119,7 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
         addSubview(pagingViewController.view!)
         addGestureRecognizer(panGestureRecognizer)
         panGestureRecognizer.delegate = self
+        onTimelineDidBecomeActive?(viewController)
     }
 
     public func updateStyle(_ newStyle: TimelineStyle) {
@@ -461,6 +480,7 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
                 self.pagingViewController.viewControllers?.first?.view.setNeedsLayout()
                 self.scrollToFirstEventIfNeeded(animated: true)
                 self.delegate?.timelinePager(timelinePager: self, didMoveTo: newDate)
+                self.onTimelineDidBecomeActive?(newController)
             }
         }
 
@@ -514,6 +534,7 @@ public final class TimelinePagerView: UIView, UIGestureRecognizerDelegate, UIScr
             state?.client(client: self, didMoveTo: selectedDate)
             scrollToFirstEventIfNeeded(animated: true)
             delegate?.timelinePager(timelinePager: self, didMoveTo: selectedDate)
+            onTimelineDidBecomeActive?(timelineContainerController)
         }
     }
 
