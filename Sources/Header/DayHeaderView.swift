@@ -29,6 +29,18 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
         }
     }
 
+    /// Controls the "<Weekday>, <Month> <Day>, <Year>" swipe label that sits
+    /// between the paging day selector and the separator. Hiding it collapses
+    /// the ~30pt it occupies (20pt label + 10pt bottom pad) — hosts should
+    /// pair with a reduced `DayView.headerHeight` to reclaim the space;
+    /// otherwise the separator drops lower on screen.
+    public var isSwipeLabelVisible: Bool = true {
+        didSet {
+            swipeLabelView.isHidden = !isSwipeLabelVisible
+            setNeedsLayout()
+        }
+    }
+
     private var currentWeekdayIndex = -1
 
     private var daySymbolsViewHeight: Double = 20
@@ -138,8 +150,13 @@ public final class DayHeaderView: UIView, DaySelectorDelegate, DayViewStateUpdat
                                       size: CGSize(width: bounds.width, height: daySymbolsViewHeight))
         pagingViewController.view?.frame = CGRect(origin: CGPoint(x: 0, y: daySymbolsViewHeight),
                                                   size: CGSize(width: bounds.width, height: pagingScrollViewHeight))
-        swipeLabelView.frame = CGRect(origin: CGPoint(x: 0, y: bounds.height - 10 - swipeLabelViewHeight),
-                                      size: CGSize(width: bounds.width, height: swipeLabelViewHeight))
+
+        // Skip both the label height and its 10pt bottom pad when hidden so
+        // the separator hugs the bottom of the paging row without a ghost gap.
+        let swipeHeight = isSwipeLabelVisible ? swipeLabelViewHeight : 0
+        let swipeBottomPad: Double = isSwipeLabelVisible ? 10 : 0
+        swipeLabelView.frame = CGRect(origin: CGPoint(x: 0, y: bounds.height - swipeBottomPad - swipeHeight),
+                                      size: CGSize(width: bounds.width, height: swipeHeight))
 
         let separatorHeight = 1 / UIScreen.main.scale
         separator.frame = CGRect(origin: CGPoint(x: 0, y: bounds.height - separatorHeight),
