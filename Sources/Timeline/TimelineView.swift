@@ -485,8 +485,28 @@ public final class TimelineView: UIView {
     }
 
     private func recalculateEventLayout() {
+        if style.eventsWillOverlap {
+            recalculateSlotGroupedEventLayout()
+            return
+        }
 
         // only non allDay events need their frames to be set
+        let columns = EventColumnLayout.columns(for: regularLayoutAttributes.map { $0.descriptor.dateInterval })
+        for (event, column) in zip(regularLayoutAttributes, columns) {
+            let startY = dateToY(event.descriptor.dateInterval.start)
+            let endY = dateToY(event.descriptor.dateInterval.end)
+            let columnWidth = calendarWidth / Double(column.count)
+            event.frame = CGRect(x: style.leadingInset + Double(column.index) * columnWidth,
+                                 y: startY,
+                                 width: Double(column.span) * columnWidth,
+                                 height: endY - startY)
+        }
+    }
+
+    /// `eventsWillOverlap`: events starting in the same `splitMinuteInterval`
+    /// slot as a group's earliest event split its width; the rest draw over
+    /// one another.
+    private func recalculateSlotGroupedEventLayout() {
         let sortedEvents = self.regularLayoutAttributes.sorted { (attr1, attr2) -> Bool in
             let start1 = attr1.descriptor.dateInterval.start
             let start2 = attr2.descriptor.dateInterval.start
@@ -497,35 +517,14 @@ public final class TimelineView: UIView {
         var overlappingEvents = [EventLayoutAttributes]()
 
         for event in sortedEvents {
-            if overlappingEvents.isEmpty {
+            guard let earliestEvent = overlappingEvents.first?.descriptor.dateInterval.start else {
                 overlappingEvents.append(event)
                 continue
             }
-
-            let longestEvent = overlappingEvents.sorted { (attr1, attr2) -> Bool in
-                var period = attr1.descriptor.dateInterval
-                let period1 = period.end.timeIntervalSince(period.start)
-                period = attr2.descriptor.dateInterval
-                let period2 = period.end.timeIntervalSince(period.start)
-
-                return period1 > period2
-            }
-                .first!
-
-            if style.eventsWillOverlap {
-                guard let earliestEvent = overlappingEvents.first?.descriptor.dateInterval.start else { continue }
-                let dateInterval = getDateInterval(date: earliestEvent)
-                if event.descriptor.dateInterval.contains(dateInterval.start) {
-                    overlappingEvents.append(event)
-                    continue
-                }
-            } else {
-                let lastEvent = overlappingEvents.last!
-                if (longestEvent.descriptor.dateInterval.intersects(event.descriptor.dateInterval) && (longestEvent.descriptor.dateInterval.end != event.descriptor.dateInterval.start || style.eventGap <= 0.0)) ||
-                    (lastEvent.descriptor.dateInterval.intersects(event.descriptor.dateInterval) && (lastEvent.descriptor.dateInterval.end != event.descriptor.dateInterval.start || style.eventGap <= 0.0)) {
-                    overlappingEvents.append(event)
-                    continue
-                }
+            let dateInterval = getDateInterval(date: earliestEvent)
+            if event.descriptor.dateInterval.contains(dateInterval.start) {
+                overlappingEvents.append(event)
+                continue
             }
             groupsOfEvents.append(overlappingEvents)
             overlappingEvents = [event]

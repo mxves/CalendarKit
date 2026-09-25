@@ -15,6 +15,9 @@ let package = Package(
     ],
     targets: [
         .target(name: "CalendarKit",
-                path: "Sources")
+                path: "Sources"),
+        .testTarget(name: "CalendarKitTests",
+                    dependencies: ["CalendarKit"],
+                    path: "Tests/CalendarKitTests")
     ]
 )
