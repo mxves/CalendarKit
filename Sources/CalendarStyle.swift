@@ -41,6 +41,7 @@ public struct DaySelectorStyle {
     
     public var font = UIFont.systemFont(ofSize: 18)
     public var todayFont = UIFont.boldSystemFont(ofSize: 18)
+    public var cornerRadius: CGFloat?
 
     public init() {}
 }

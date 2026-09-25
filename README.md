@@ -13,8 +13,6 @@
 [![GitHub followers](https://img.shields.io/github/followers/richardtop?style=social)](https://github.com/richardtop)
 
 
-[Richard Topchii on Telegram](https://t.me/richardtop)
-
 # CalendarKit
 **CalendarKit** is a Swift calendar UI library for iOS and Mac Catalyst. It looks similar to the Apple Calendar app out-of-the-box, while allowing customization when needed. CalendarKit is composed of multiple modules which can be used together or independently.
 
@@ -36,10 +34,8 @@ Check out the [Sample App](https://github.com/richardtop/CalendarApp) for refere
 [Sample App](https://github.com/richardtop/CalendarApp)
 
 ## Installation
-CalendarKit can be installed with Swift Package Manager or with CocoaPods.
-### Swift Package Manager (Xcode 12 or higher)
-
-The preferred way of installing CalendarKit is via the [Swift Package Manager](https://swift.org/package-manager/).
+CalendarKit can be installed with Swift Package Manager.
+### Swift Package Manager
 
 1. In Xcode, open your project and navigate to **File** → **Swift Packages** → **Add Package Dependency...**
 2. Paste the repository URL (`https://github.com/richardtop/CalendarKit.git`) and click **Next**.
